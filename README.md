@@ -424,3 +424,8 @@ This is a first-class deliverable, versioned like a visual design system.
 - Identity without images, reputation via vouching (§5.4) → identity without images.
 - Business model open; federation question (§13) → honest open problems.
 - Staged build with falsifiable gates (§11) → recommended staged plan.
+
+## Contributors
+
+- Taha Mahmoodi
+- Said Towfiq Mowafaq
