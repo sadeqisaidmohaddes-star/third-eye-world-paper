@@ -1,431 +1,362 @@
-# Third Eye World — Engineering Build Instruction Package (v1.0)
+# Third Eye World: A Blind-First, Voice-First Social Platform — Build Specification (v2.0)
 
 **Author:** Said Mohaddes Sadeqi
 **Affiliation:** Third Eye Worldwide
 **Date:** July 2026
+**Status:** Approved for build. This specification supersedes all earlier drafts, including the v1.0 Engineering Build Instruction Package previously published in this repository. All major decisions are settled unless explicitly marked open in §13.2.
 
 ## Abstract
 
-- **Build a sensory-neutral spine, not an accessible Instagram.** Every post/thread/object is stored once in a canonical non-visual data model and rendered losslessly to speech, non-speech audio, braille, haptics, low-vision visuals, and IVR/voice-phone — no projection is "primary." This is the falsifiable core; if you cannot demonstrate lossless multi-sensory parity of a single object (Stage 0 gate), do not proceed.
-- **Two things are non-negotiable and gate the whole build:** (1) an inclusion + safety floor (braille/low-vision/audio parity, IVR/USSD gateway, and core anti-impersonation via voice provenance and out-of-band safe-word verification, because Microsoft's VALL-E showed a usable voice clone can be synthesized "with only a 3-second enrolled recording of an unseen speaker"); and (2) rejection of engagement-maximizing design in favor of finite, time-boxed "episodes/digests" for a population at documented elevated loneliness risk.
-- **The business model is genuinely unresolved and must not be treated as settled.** Plan for cooperative/nonprofit/public-philanthropic/subscription/creator-fee funding as the base case; ad-based monetization is unlikely to close for this market. Several headline features (earcon social vocabulary, finite-digest well-being benefit, audio "glanceability") are conjecture and must pass Stage 1 experiments before broad build.
+- **Third Eye World is a voice-first social network for blind and low-vision (BLV) people, built blind-first rather than retrofitted from a visual product.** Every post and comment is a voice memo; the timeline plays memos sequentially, like radio; the interaction set is deliberately narrow (like, comment, skip). It ships as a nonprofit, free and open-source, with no advertising.
+- **The problem this platform targets is loneliness, not engagement.** Vision impairment is associated with elevated social isolation — in a probability sample of 736 Norwegian adults with visual impairment, roughly half reported at least moderate loneliness (Brunes et al., 2019). Accordingly, the headline success metric is a validated loneliness instrument (the UCLA Loneliness Scale), not time-on-app.
+- **Ten non-negotiable principles gate every feature decision** (§2): audio as medium rather than fallback, voice-first-not-voice-only, a stream that ends, no engagement machinery, triple-redundant action affordances, no timed/precise gestures, voice treated as biometric data, visible and appealable moderation, reachability without a smartphone, and blind governance of curation and moderation.
+- **Two contested design decisions are recorded with their dissent rather than presented as unanimous:** the platform does not support sign-language video, instead treating text memos as first-class and read aloud by synthetic voice for the DeafBlind community (§3.3); and a later reversal of an earlier control-scheme recommendation replaces volume-button and tap-based controls, which are unreliable or against platform policy, with a redundant scheme of media-transport controls, voice commands, and screen-reader custom actions (§4).
+- **The specification covers the full build surface**: interaction and control design, a Next.js web application and native iOS/Android apps, end-to-end encrypted direct messaging deferred to the native apps, backend and speech infrastructure, moderation, accessibility/privacy/legal compliance (including an honest WCAG 2.2 conformance claim that stops short of full AAA), a beta programme with explicit go/no-go gates, and a 9–12 month delivery timeline.
+- **The business model, community sequencing, and long-term stewardship structure remain open decisions** for leadership (§13.2); everything else in this document is settled.
 
 ---
 
-## 1. Purpose & Context for the Team
+## 1. Introduction
 
-**What Third Eye World is.** Third Eye World (TEW) is a voice-first, blind-first digital social ecosystem for blind and low-vision (BLV) users. "Blind-first" is a specific architectural commitment, not a marketing phrase: the platform is designed *from* a temporal/acoustic/haptic ontology rather than retrofitting a visual product with a screen reader.
+### 1.1 Purpose and how to read this specification
 
-**Why it exists.** Per the WHO Fact Sheet on blindness and vision impairment, "Globally, at least 2.2 billion people have a near or distance vision impairment," and — per Orbis International — "89% of the world's visually impaired [live] in low or middle income countries, particularly in Asia or Sub-Saharan Africa" (about 55% are women). BLV people are at documented elevated risk of loneliness and social isolation, which correlate with depression, sleep disturbance, cardiovascular disease, and increased mortality risk. Dunlop et al. (*British Journal of Visual Impairment*, 2025), reviewing Brunes et al.'s 2019 study of 736 Norwegian adults with visual impairment, report that "loneliness was more prevalent among those who were severely sight impaired (blind)" than partially sighted (Brunes found moderate-loneliness prevalence of 28.7% and severe of 19.7%). A social platform for this population therefore has a duty of care: it must be well-being-oriented, globally reachable, and safe by design.
+This document is the single source of truth for building Third Eye World. Sections 1–2 establish what is being built and why. Sections 3–11 are the technical specification and should be built from directly. Sections 12–13 cover the beta programme, delivery timeline, and the decisions leadership still has to make.
 
-**The prime directive.** Build FROM non-visual primitives. The visual rendering is just one projection of a canonical model, and it is built last or in parallel — never first. Any ticket that starts "the screen shows…" and works backward to audio is a red flag and should be rejected in code review.
+Every decision recorded here came out of a multidisciplinary committee that included blind and low-vision people as core decision-makers, not advisors. Where a decision was contested, the dissent is recorded so it is clear it was argued, not assumed. **One rule governs every ticket:** if it starts from "the screen shows…" and works backward to audio, it is rejected. The platform is built from sound first.
 
-**What the research found (and this package implements):**
-- A **sensory-neutral spine** is the falsifiable commitment that distinguishes blind-first from ordinary accessibility.
-- **Voice-first but NOT voice-only.** Speech is serial, slow, public, and fatiguing; non-speech audio must carry structural load.
-- **Reject infinite scroll / engagement maximization**; prefer finite episodes with a clear end.
-- **Interdependence by design**: giving and receiving help is a first-class feature.
-- **Voice is a spoofable biometric.** Anti-impersonation is core, not peripheral.
-- **Global South / offline-first is mandatory.**
-- **Audio moderation at scale is hard and biased**; require transparent, contestable, human-in-the-loop moderation.
-- **The BLV privacy threat model is distinct** (shoulder-surfers the user can't see, PINs voiced aloud, cameras capturing bystanders).
-- **Accessibility beyond screen readers**: braille, low-vision, deafblind, haptics as first-class.
-- **AI with confabulation and dependency safeguards.**
-- **Identity without images.**
-- The business model is an **honest open problem**.
+### 1.2 The product
+
+Third Eye World is a voice-first social network for blind and low-vision people. It is **blind-first, not blind-only** — sighted people are welcome, but they adapt to the interface, not the other way round.
+
+The core loop: every post is a short voice memo (90-second soft cap, 3-minute hard cap); every comment is a voice memo; the timeline plays memos one after another, like radio; a user can like, comment, or skip, and that is the entire interaction set.
+
+Deliberately absent: a follow graph, a ranking or recommendation algorithm, follower/like/view counts, images or video, and infinite scroll — the stream has an end.
+
+Delivery order is web app first, then native iOS and Android; private messages ship with the phone apps, not the website (§7). The organisation is a nonprofit: free, open-source, no advertising.
+
+### 1.3 Why it exists
+
+Mainstream social media was built for sighted browsing and retrofitted for everyone else. Blind users carry the cost — describing images, navigating screen readers through visual layouts, and performing unpaid accessibility labour for sighted creators.
+
+The deeper problem is loneliness. Vision impairment is strongly associated with social isolation: in a probability sample of 736 Norwegian adults with visual impairment, loneliness was more prevalent among those severely sight-impaired, with roughly half reporting at least moderate loneliness — well above general-population rates (Brunes et al., 2019). **That is the problem this product exists to address. Not engagement. Not growth. Loneliness.** Consequently, success is not measured in time-on-app; the headline metric is a validated loneliness scale (§12).
+
+## 2. Non-Negotiable Design Principles
+
+These are acceptance criteria, not aspirations. A feature that violates one of them does not ship.
+
+1. **Audio is the medium, not a fallback.** Sound comes first; text and visuals are projections of it.
+2. **Voice-first, never voice-only.** Speech is slow, serial, public, and tiring. Structure, status, and identity must also be conveyable by non-speech sound and by touch.
+3. **The stream ends.** No infinite scroll, no endless autoplay. Every session reaches a natural stopping point.
+4. **No engagement machinery.** No streaks, no variable rewards, no manufactured notifications, no vanity counts, no dark patterns of any kind.
+5. **Every action has three routes.** Anything a user can do must be reachable by media controls, by voice, and by the screen reader's own menu. Nothing may live on a single gesture.
+6. **No timed or precise gestures.** No triple-tap, no press-and-hold. Nerve damage from diabetes is common in this population, and such gestures exclude people.
+7. **Voice is biometric data.** Every recording is treated as sensitive personal data. What is kept is minimised, and voice is never used as an authentication factor.
+8. **Moderation is visible and appealable.** No silent shadowbanning. Every enforcement action is disclosed with a reason and a route to appeal.
+9. **Reachable without a smartphone.** The product must work for someone on a basic phone with no data plan.
+10. **Blind people govern it.** Curation and moderation leadership is majority-blind by rule.
+
+## 3. Scope: What Is Built, and What Is Refused
+
+### 3.1 Beta scope
+
+| Area | Included |
+|---|---|
+| Posting | Record a voice memo; post a typed text memo (read aloud by synthetic voice) |
+| Listening | Continuous audio timeline; skip, replay, pause |
+| Interaction | Like; voice comment |
+| Discovery | Channels/stations, community DJs, chronological order, shuffle, transcript search |
+| Transcripts | Auto-generated for every memo, on by default, correctable by the author |
+| Onboarding | Fully spoken, in the user's first language, teaches community norms |
+| Identity | Handle, spoken self-description, voluntary tenure/role labels |
+| Safety | Block, mute, report — each reachable in one step without sight |
+| Messages | 1:1 voice DMs — phone apps only, not the website |
+| Reach | IVR dial-in path for basic phones |
+
+### 3.2 Explicitly refused
+
+| Not building | Rationale |
+|---|---|
+| Infinite scroll | Well-being; the population is already at loneliness risk |
+| Ranking algorithm | Nothing to rank at beta scale; it is the engine of compulsion at large scale |
+| Follower/like/view counts | Vanity metrics harm creators and distort community |
+| Images and video | Eliminates description labour; it is the entire point |
+| Sign-language video | See §3.3 |
+| Live audio rooms | Killed Clubhouse's retention; unmoderatable in real time |
+| Group DMs (at beta) | Abuse surface too large for launch |
+| Advertising | No ad model closes for this audience, and it would corrupt the mission |
+| Voice as a login factor | A voice can be cloned from three seconds of audio |
+| Volume-button controls | Prohibited by Apple; unreliable on Android (see §4) |
+| Press-and-hold to record | Excludes users with nerve damage |
+| AI companions | Documented dependency harms in isolated populations |
+
+### 3.3 Sign language: the decision and its dissent
+
+The platform does not support sign-language video. This was argued at length and decided against: sign languages are visual, and supporting them means adding video, which breaks three prior commitments — no video, low-bandwidth access for the Global South, and the audio-only identity of the product.
+
+The committee did not stop at "no." The group the platform can genuinely serve is the DeafBlind community, who do not use video either — they read with refreshable braille displays. Consequently: text memos are first-class, so a DeafBlind user can post and reply in text, read everything on a braille display, and have their text memos read aloud into the audio stream by synthetic voice so blind users still hear them. No signing avatars are used, following the World Federation of the Deaf and WASLI's public opposition to avatars replacing human interpreters. The website carries an honest, publicly visible explanation of why there is no sign-language video, written with Deaf and DeafBlind advisors, with links to Deaf platforms that support signing properly.
+
+**Recorded dissent:** for many culturally Deaf people, written text is a second language; text is not equivalent to signing, and the platform should not claim it is. This dissent stands in the public explanation.
+
+## 4. Interaction and Control Scheme
+
+This section reverses an earlier recommendation.
+
+**What does not work.** Volume buttons are excluded: App Store Review Guideline 2.5.9 states that apps altering or disabling standard switches such as Volume Up/Down are rejected, and Apple has pulled apps for this; on Android, intercepting volume keys is inconsistent across manufacturers and OS versions and is user-hostile besides. Back Tap and Quick Tap are excluded as primary controls — they only launch system shortcuts, misfire with thick cases and imprecise taps, and offer no haptic confirmation; they may be offered as an optional convenience, but nothing critical depends on them. Custom whole-screen taps are excluded by default, since VoiceOver and TalkBack intercept single, double, and triple taps before the app ever sees them.
+
+**What is actually built — four primary controls, always available:**
+
+1. **Media transport controls.** Headphones and AirPods (double-press = next, triple-press = previous), lock screen, Control Center, notification shade. This is the true eyes-free surface — it works in a pocket. iOS: `MPRemoteCommandCenter` + `MPNowPlayingInfoCenter`. Android: `MediaSession` + `MediaStyle` notification. Web: Media Session API (`navigator.mediaSession.setActionHandler`).
+2. **Voice commands.** "Next," "like," "comment," "replay," "record."
+3. **Screen-reader custom actions.** Exposed through the VoiceOver Actions rotor and TalkBack custom actions — the screen-reader-native controls, which never conflict. iOS: `UIAccessibilityCustomAction`. Android: `AccessibilityNodeInfo.AccessibilityAction` / Compose `Modifier.semantics { customActions = ... }`.
+4. **On-screen buttons.** Plain, large, correctly labelled; target size minimum 44×44 points.
+
+**Optional "radio mode," opt-in only:** a user may switch on a mode where the whole screen becomes a tap surface — one tap = next, two taps = like — which requires silencing the screen reader on that surface (iOS: `accessibilityDirectTouchOptions` with `.silentOnTouch`, with `.requiresActivation` considered to prevent accidental triggers). This mode must be easy to enter and leave and must never be the default; it deliberately breaks normal screen-reader navigation on that surface, which is why it is scoped and opt-in.
+
+**Recording** uses a start/stop toggle button — one press to start, one to stop — with spoken level feedback, never a hold, and is also available by voice command and rotor action.
+
+## 5. Web Application
+
+### 5.1 Architecture
+
+The stack is **React + Next.js (App Router), server-rendered, delivered as a PWA**, chosen for the depth of audited accessible component libraries (React Aria, Radix) and the size of the talent pool. Svelte and Astro would give better default screen-reader behaviour but lost on ecosystem and hiring; that dissent is recorded.
+
+The single most important fix is route announcements: single-page apps do not announce navigation to screen readers, so every route change must (1) move focus to the new view's `<h1>` (`tabindex="-1"` then `.focus()`) and (2) update a visually hidden `aria-live="polite"` region with "Navigated to {page title}." Both are required — focus alone is unreliable in NVDA+Firefox and VoiceOver+Safari.
+
+Other hard rules: `role="application"` is never used, since it disables the screen reader's browse mode and destroys heading and landmark navigation; the audio player is a persistent region rendered outside the routed view tree so playback survives navigation; track changes are announced with `aria-live="polite"`, never `assertive`, and debounced so rapid skipping does not flood the screen reader.
+
+### 5.2 Recording in the browser
+
+Recording uses `getUserMedia` + `MediaRecorder`, supported in Chrome, Firefox, Edge, and Safari 14.1+ (macOS) / 14.5+ (iOS). Codec handling must not be hardcoded: Chromium writes `audio/webm;codecs=opus`, Safari writes `audio/mp4` (AAC) only and cannot write WebM. The implementation feature-detects with `MediaRecorder.isTypeSupported()`, tries in order `['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/wav']`, and reads back the actual `mediaRecorder.mimeType`; the transcoding pipeline accepts both. Chunks are streamed with `mediaRecorder.start(1000)` rather than buffering the whole recording, since iOS Safari otherwise runs into memory pressure. Where MediaRecorder is unavailable, the fallback is `<input type="file" accept="audio/*" capture>`, plus the IVR path.
+
+### 5.3 Playback
+
+`<audio>` elements handle transport; the next memo preloads on a second hidden element and swaps on `ended` for gapless radio. Browsers block audio until a user gesture — the user presses Play once, after which subsequent programmatic `.play()` calls in that session are permitted, and audio is never auto-started on page load. The Media Session API drives lock-screen and hardware-key control. Background playback in mobile browsers is unreliable, especially in iOS Safari, which is a primary reason the native apps exist.
+
+### 5.4 Offline and installability
+
+The service worker caches the app shell cache-first and audio network-first with a small LRU cache, kept deliberately small since iOS Safari caps the service worker cache around 50 MB and evicts aggressively. Recorded memos queue in IndexedDB and upload when connectivity returns, with the queue state surfaced accessibly ("One memo waiting to upload"). Web Push works on iOS 16.4+ only if the PWA is installed to the Home Screen, with delivery roughly 70–85% on iOS versus 90–95% on Android, so email or SMS fallback is always provided. Background sync is not supported on iOS, so queues flush on foreground.
+
+### 5.5 Authentication
+
+Authentication uses passkeys (WebAuthn), magic email links, and phone OTP, all of equal status; a user is never trapped in a passkey-only flow, since passkey ceremonies are known to confuse screen-reader users. Recovery uses a second registered channel plus copyable recovery codes read aloud during setup with a spoken warning — no security questions, no document upload. **Voice is never an authentication factor.**
+
+## 6. Native Mobile Applications
+
+### 6.1 Native, not cross-platform
+
+The apps are built **Swift/SwiftUI for iOS and Kotlin/Jetpack Compose for Android**. Flutter draws its own interface and synthesises a semantics tree, with documented gaps in custom-action announcements and screen-reader reliability; React Native maps to native APIs but does not guarantee identical behaviour across platforms. For a product where screen-reader fidelity is the product, neither is acceptable. This roughly doubles mobile engineering cost, a cost the committee accepted deliberately; the dissent from the cost seat is recorded.
+
+### 6.2 iOS
+
+Full `UIAccessibility` labelling (label, value, trait, hint) on every control; `UIAccessibilityCustomAction` in the Actions rotor for like, comment, skip, replay, report, block, and mute; `AVAudioSession` category `.playback` (or `.playAndRecord` while recording), mode `.spokenAudio`; background audio mode enabled; `MPRemoteCommandCenter` for play, pause, next, previous, and skip forward/back; App Intents for Siri and Shortcuts ("Play my Third Eye World radio," "Record a memo"); compliance with Review Guideline 2.5.9, with microphone usage strings and privacy labels including audio declared.
+
+### 6.3 Android
+
+Full TalkBack labelling and custom actions; **Media3 `MediaSessionService`**, which auto-creates the required notification. On Android 14+, the foreground service declares `android:foregroundServiceType="mediaPlayback"` and requests both `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_MEDIA_PLAYBACK`; `ServiceCompat.startForeground(...)` must be called with `FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK` within 10 seconds of `startForegroundService()` or the app crashes, and the type must be declared on the Play Console App Content page. Testing spans Pixel, Samsung, and Xiaomi, since TalkBack gesture behaviour differs by manufacturer.
+
+### 6.4 Audio ducking
+
+Getting this wrong makes the app unusable — two voices talking at once is the single fastest way to make a blind user quit. On iOS, VoiceOver ducks audio automatically while it speaks, so the app must not implement its own ducking for VoiceOver; mode `.spokenAudio` causes the system to treat memos as speech and prefer pausing over ducking. On Android, the player is tagged with `AudioAttributes.CONTENT_TYPE_SPEECH`; the system then sends `AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK`, and `AudioFocusRequest.Builder.setWillPauseWhenDucked(true)` is set so the memo pauses rather than being talked over, with TalkBack detected via `AccessibilityManager.isTouchExplorationEnabled()` to time the app's own announcements.
+
+### 6.5 Notifications
+
+Notifications are relational only — "Someone replied to your memo," "A new memo in a channel you joined," "Your message request was accepted" — and never streaks, "you haven't opened the app in…" prompts, engagement bait, or badge counts tied to vanity metrics. They are batched, user-controllable, and quiet-hours aware.
+
+## 7. Private Messaging
+
+Direct messages ship with the phone apps, not on the website. Browser key storage is fundamentally weaker — no hardware-backed keystore, and IndexedDB is exposed to cross-site scripting — and Signal's browser library is archived and unmaintained. The phone apps have Keychain/Secure Enclave and Android Keystore, and libsignal is first-class there. The web app instead shows "Direct messages are available in the Third Eye World mobile app" and still lets users manage blocks and message requests.
+
+| Element | Rule |
+|---|---|
+| Who can message | Nobody uncontrolled. A stranger may send one short memo into a request queue, with no notification; a thread opens only on acceptance. |
+| Encryption | End-to-end by default (libsignal). Keys in Keychain/Secure Enclave and Android Keystore. |
+| Metadata | Minimised, sealed-sender style. The social graph or contact lists are not retained. |
+| Abuse reporting | Message franking — the recipient can cryptographically prove a reported memo is authentic without the platform having standing access to anyone's messages. |
+| Crypto warning | A committing AEAD / encryptment scheme is used. AES-GCM is not used for franking — the "invisible salamanders" attack broke exactly this construction in a major product (Grubbs, Lu & Ristenpart, 2017). |
+| Scanning | No client-side scanning, ever. |
+| Retention | Ephemeral server-side. The only audio retained is what a user reports. |
+| Rate limits | Tight caps on outbound requests for new accounts; suspected bad actors are silently shadow-queued. |
+| Minors | Can only be messaged by existing connections. Age assurance is on-device attestation, never document upload. |
+| Safety actions | Block, report, mute — each a first-class rotor action, media-control action, and voice command, one step, no sight required. |
+| Scam protection | A spoken interstitial on first contact from a stranger: "This person is not in your communities. Never send money or share codes." Plus on-device detection of money and urgency language. |
+| Group DMs | Deferred past beta. |
+
+The scam-protection requirement is not hypothetical: confidence and romance scams disproportionately target isolated, elderly, and disabled people — the FBI's complaint centre logged over 19,000 romance-scam complaints in a single year with losses near $740 million, and Australian regulators recorded a 71% year-on-year rise in losses reported by people with disability. A voice channel manufactures intimacy faster than text.
+
+**Recorded dissent:** the child-safety seat holds that refusing content scanning makes some abuse harder to detect proactively. The committee accepted behavioural and metadata detection but held the line against content scanning, consistent with the security-research consensus.
+
+## 8. Backend and Infrastructure
+
+### 8.1 Storage and delivery
+
+Audio is stored in S3-compatible object storage, encrypted at rest, preferring a zero-egress CDN (Cloudflare R2 or equivalent), since egress is the dominant cost. Uploads are transcoded to Opus, mono, 16–24 kbps — sufficient for intelligible voice — while the original is kept for provenance, alongside a low-bitrate variant for constrained networks. At beta scale, a 90-second memo at 20 kbps is roughly 225 KB; five thousand users posting twice daily is around 68 GB of new audio a month, so storage is trivial and egress is near zero on the right CDN. Transcription is the real variable cost.
+
+### 8.2 Data model (sketch)
+
+```
+users(id, handle, first_language, tenure_label, role, age_band, created_at)
+memos(id, author_id, channel_id, audio_key, mime, duration_ms,
+      is_tts, source_text, lang_id, created_at)
+transcripts(id, memo_id, text, lang, engine, confidence,
+            is_machine, corrected_text, created_at)
+comments(id, memo_id, author_id, audio_key, transcript_id, created_at)
+channels(id, name, description, dj_ids[], is_curated)
+likes(memo_id, user_id, created_at)
+reports(id, target_type, target_id, reporter_id, franking_proof,
+        status, sla_due_at, created_at)
+moderation_decisions(id, target_type, target_id, moderator_id,
+                     action, rationale_code, created_at)
+```
+
+There is no follows table — there is no follow graph. Likes are per-user state only, so a user can find what they liked; they are never aggregated, counted, or displayed as a number. `moderation_decisions` logs decisions, not content: rationale codes, not message text.
+
+### 8.3 Transcription
+
+Transcription self-hosts **Whisper large-v3** (via faster-whisper on a GPU worker; whisper.cpp for cheap batch work), with cloud ASR only as a per-language fallback under a data-processing agreement with no-training and no-retention terms, given that voice is biometric data in transit. At beta volumes, self-hosting is materially cheaper than per-minute cloud pricing and keeps voices under the platform's control.
+
+Language identification runs before ASR as a mandatory step: automatic speech recognition is measurably biased, with a five-system study across Amazon, Apple, Google, IBM, and Microsoft finding an average word error rate of 0.35 for Black speakers against 0.19 for white speakers (Koenecke et al., 2020). Routing everything through one English model would systematically mis-transcribe the users the platform most needs to serve.
+
+Transcripts are always generated, on by default in the interface, and permanently labelled "machine transcript — may contain errors," with a one-step global toggle to turn display off. "Suggest a correction" writes to `corrected_text` and never overwrites the machine output, and a user is never penalised on the basis of a raw machine transcript alone — a human listens to the audio first.
+
+### 8.4 Text-to-speech
+
+**Piper** is the default text-to-speech engine (open source, 35+ languages, runs at the edge), with cloud neural TTS used per-language where Piper lacks coverage. Coqui XTTS is avoided in production, since its weights ship under a non-commercial licence and the company has shut down. Only generic voices are used — user voices are never cloned. TTS-rendered text memos are announced in the stream as "Text memo, read by synthetic voice."
+
+### 8.5 API shape
+
+The API surface is small, with cursor pagination and no ranking:
+
+```
+POST /memos
+GET  /timeline?channel=&cursor=&shuffle=
+POST /memos/:id/like
+POST /memos/:id/comments
+GET  /search?q=
+POST /reports
+```
+
+Rate limits are token-bucket, per user and per IP, stricter for new accounts.
+
+## 9. Moderation and Safety
+
+The moderator console must itself be fully accessible, since the platform's moderators are blind — same WCAG standard as the product, keyboard- and screen-reader-complete, with audio review by buttons and shortcuts rather than drag-only scrubbing. Moderation is tiered: automated triage flags, humans decide, and machine transcripts assist but never determine outcomes. New accounts have reduced reach until established, both a safety measure and a way to keep review volume within human capacity. DM reports get a faster review SLA than public content. There is no silent shadowbanning — every action is disclosed with a reason and an appeal route, and appeals go to a different reviewer than the original decision. Community juries handle contested borderline cases. Transparency reports include moderation outcomes broken down by language and dialect, to detect the platform's own bias. Curation and moderation leadership is majority-blind as a governance rule, not a preference.
+
+## 10. Accessibility, Privacy, and Legal Compliance
+
+### 10.1 The honest accessibility claim
+
+Full WCAG 2.2 Level AAA conformance is not claimed, and the platform will not pretend otherwise. One AAA criterion (1.2.6) requires sign-language interpretation for prerecorded audio, and the platform has deliberately decided against sign-language video (§3.3); claiming AAA regardless would be false, and a false accessibility claim is a legal exposure.
+
+What is published:
+
+> Third Eye World conforms to WCAG 2.2 Level AA in full, and additionally meets Level AAA criteria 1.4.6, 2.4.9, 2.4.12, 2.4.13, 2.5.5, 3.3.9, 2.2.3, and 2.3.2. Full Level AAA conformance is not claimed and, per W3C guidance, is not achievable for all content of this type — specifically 1.2.6 Sign Language, which conflicts with the deliberate design decision not to use sign-language video. Equivalent access is provided through machine transcripts, text memos rendered to speech, and refreshable braille display support.
+
+Notably, 3.3.9 Accessible Authentication (Enhanced) — usually one of the hardest AAA criteria — is met comfortably, since passkeys and magic links involve no cognitive test. An accessibility statement with a feedback channel is published (required under the European Accessibility Act), a VPAT is produced, and accessibility overlays are not used, since they confer no compliance and the European Commission has said so.
+
+### 10.2 Privacy and biometric law
+
+Voice recordings are special-category biometric data under GDPR Article 9, and voiceprints are covered by Illinois BIPA. The platform requires explicit informed consent before any voice processing, given in speech as well as text and revocable; encryption at rest and in transit; documented retention and deletion, with erasure cascading to transcripts, likes, and backups; data-subject access request tooling from day one; audio watermarking for provenance, without ever treating a watermark as a deepfake detector, since detectors do not generalise to new generators; and a breach plan with 72-hour notification.
+
+### 10.3 Threat model
+
+| Threat | Mitigation |
+|---|---|
+| Account takeover | Passkeys; no voice authentication |
+| Voice cloning and impersonation | No voice auth; provenance watermarking; report and appeal route |
+| Corpus scraping for cloning | Authentication, rate limits, no bulk export |
+| DM abuse and grooming | Consent gate, franking, fast human review, minors restricted, scam interstitials |
+| Insider access to voice data | Least privilege, audit logging, breach plan |
+
+### 10.4 Global South reach
+
+Roughly nine in ten visually impaired people live in low- and middle-income countries; a smartphone-and-data product would exclude most of the people the platform exists to serve. The mitigation is an IVR path with missed-call callback — the user rings a number, the system calls back at no cost to them, and key presses navigate memos, a proven model in low-literacy, low-connectivity settings — combined with low-bitrate Opus, offline caching, an explicit data-saver mode showing approximate data used, and spoken onboarding in the user's first language. Beta languages are English, Spanish, Hindi, Swahili, and Arabic, chosen for population reach, Global South coverage, right-to-left support, and adequate speech technology; a West African language follows in the first post-beta wave, with IVR scripts in preparation.
+
+## 11. Beta Programme
+
+### 11.1 Testers
+
+Blind and low-vision testers are recruited across several cities and countries through blind organisations, training centres, and DeafBlind organisations. The cohort includes screen-reader users across all four major readers, braille-display users, low-vision users, users with motor impairment (particularly diabetic peripheral neuropathy, the population that motivated rejecting timed gestures), and a minority of sighted testers. Testers are compensated through inclusive rails — mobile money such as M-Pesa where banking is inaccessible, plus device and data grants, with amounts kept private — and explicit, spoken, revocable consent is taken for voice and biometric processing, explaining transcription, storage, retention, and any third-party routing.
+
+### 11.2 Testing method
+
+Automated tools catch roughly half of accessibility issues — Deque's analysis across thousands of audits found automated testing identifies about 57% of issues by volume — so the remainder requires humans. Automated tooling includes axe-core, Lighthouse, WAVE, and Accessibility Insights, plus Accessibility Scanner on Android and Xcode Accessibility Inspector on iOS. Manual scripts run across NVDA (Firefox and Chrome), JAWS (Chrome), VoiceOver (macOS Safari and iOS), TalkBack (Android Chrome), Narrator, and Orca, with braille-display verification of transcripts, low-vision testing at 200–400% zoom, and motor testing to confirm no action requires fine timing or precision. Mobile testing is not optional, since over nine in ten screen-reader users use one on a phone.
+
+### 11.3 Bug reporting
+
+Bug reporting uses multiple accessible channels — an in-app voice bug report ("record a bug"), an accessible web form, email, and a phone or WhatsApp line — and never requires a screenshot. Device and screen-reader metadata are attached automatically, with consent.
+
+### 11.4 Go/no-go gates
+
+Wider launch does not proceed until all of the following hold: ≥90% task completion by real screen-reader users on core flows across all four readers; zero unresolved critical accessibility defects; the transcript labelling and correction loop working; moderation SLAs met, including the faster DM SLA; no unresolved P0 privacy or security findings; ≥99.5% crash-free sessions; the IVR path demonstrated in at least one Global South pilot; and the loneliness instrument administrable accessibly, with consent.
+
+### 11.5 What is measured
+
+The headline metric is the UCLA Loneliness Scale, administered in-app accessibly (spoken, labelled radio groups, no time pressure), opt-in with explicit consent, at onboarding and at intervals; results are private to the user and aggregated anonymously for programme evaluation. Also instrumented: onboarding completion, transcript correction rate, crash and error rates, speech latency, playback failures, and moderation SLA adherence. Never instrumented as a success measure: time-on-app, session counts, streaks, or engagement leaderboards. Analytics are privacy-preserving, cookieless, and self-hosted (Plausible or Matomo), with no third-party trackers.
+
+## 12. Team, Timeline, and Budget
+
+The team is roughly 10–13 people: a product lead; two web engineers (one accessibility lead); one iOS and one Android engineer, both accessibility-experienced; one backend/infrastructure engineer; one audio/ML engineer for speech; a part-time applied cryptographer for the DM work; a QA and accessibility testing lead; a community and trust-and-safety lead; and part-time DevOps, plus paid community DJs and moderators and compensated testers.
+
+The timeline is roughly 9–12 months:
+
+| Months | Work |
+|---|---|
+| 0–1 | Architecture, accessible design system, infrastructure, threat model, consent and legal |
+| 2–4 | Web core: record, play, timeline, transcripts, channels, search; moderator console; self-hosted speech; five languages |
+| 4–5 | Web beta by invite wave, with real screen-reader testers; loneliness baseline |
+| 5–8 | Native iOS and Android; encrypted DMs |
+| 8–10 | Mobile beta via TestFlight and Play closed testing; IVR pilot |
+| 10–12 | Hardening, go/no-go gates, accessibility statement and VPAT, launch readiness |
+
+Salaries dominate the budget; infrastructure is modest, in the low hundreds of dollars a month at beta scale with self-hosted speech and a zero-egress CDN, plus honoraria and device grants per the capped policy. Funding is expected from grants and disability-focused foundations, individual giving, and in-kind infrastructure, with a possible enterprise or earned-revenue leg later — no advertising. Community DJs and moderators are paid fixed monthly honoraria at roughly $25–40/hour equivalent, capped around $10,000 per person per year, never per view, since per-view creator funds have failed everywhere they have been tried.
+
+## 13. Risks and Open Decisions
+
+### 13.1 Two traps to avoid now
+
+1. **Google Play.** A new personal developer account must run a closed test with at least 12 testers for 14 continuous days before production access; registering the nonprofit as an organisation developer account avoids this requirement, and should be done before any Android code is written.
+2. **Audio ducking.** As described in §6.4, if the screen reader talks over the memos, the product is unusable — a small configuration detail with total consequences, to be verified in the first week of mobile work.
+
+### 13.2 Open — leadership must decide
+
+| Decision | Note |
+|---|---|
+| Which community launches first | One dense community, not a global launch — density beats breadth |
+| Whether to fund a self-voicing "radio mode" engine | Larger build, better radio feel, less interoperable |
+| Funding mix and lead funders | No single funder should exceed 25–30% of revenue |
+| Long-term stewardship | Foundation now; cooperative ownership later? |
+
+Everything else in this specification is settled.
+
+## 14. Conclusion
+
+Third Eye World's central claim is that a social platform for blind and low-vision people should be designed from an audio-first ontology rather than adapted from a visual one, and that its success should be measured against loneliness rather than engagement. The specification above commits that claim to a concrete, buildable form: a narrow interaction set, a control scheme with three redundant, screen-reader-safe routes to every action, a data model with no follow graph or vanity counts, and a beta programme gated on real accessibility outcomes rather than ship dates. The two hardest calls — refusing sign-language video while making text and braille first-class, and reversing the initial control-scheme recommendation once it conflicted with platform policy and real-world reliability — are recorded with dissent rather than smoothed over, on the view that a document a blind-led committee actually argued over is more trustworthy than one that reads as unanimous. What remains open is deliberately left to leadership rather than decided by default: which community launches first, how "radio mode" is funded, and how the organisation is governed over the long term.
+
+## Glossary
+
+**ASR** — automatic speech recognition; machine transcription.
+**Custom actions** — extra actions a screen reader exposes through its own menu (the VoiceOver rotor, TalkBack custom actions), which do not conflict with screen-reader gestures.
+**Direct Touch** — an iOS setting that lets an app receive raw taps by silencing VoiceOver on that region. Powerful, disruptive, opt-in only.
+**Earcon** — a short abstract sound that conveys meaning without words.
+**End-to-end encryption (E2EE)** — only sender and recipient can read a message; the server cannot.
+**Franking** — cryptography that lets a recipient prove a reported message is authentic without giving the platform access to everyone's messages.
+**IVR** — interactive voice response; navigating a service by phone keypad over an ordinary call.
+**Opus** — an efficient open audio codec, good at low bitrates.
+**PWA** — progressive web app; a website installable to the home screen with offline capability.
+**Refreshable braille display** — hardware rendering text as physical braille; the primary access route for DeafBlind users.
+**Rotor** — VoiceOver's control for switching navigation modes and reaching custom actions.
+**WCAG 2.2** — the international web accessibility standard, at levels A, AA, and AAA.
+
+## References
+
+- Brunes, A., Hansen, M. B., & Heir, T. (2019). Loneliness among adults with visual impairment: prevalence, associated factors, and relationship to life satisfaction. *Health and Quality of Life Outcomes*.
+- Koenecke, A., et al. (2020). Racial disparities in automated speech recognition. *Proceedings of the National Academy of Sciences*.
+- Grubbs, P., Lu, J., & Ristenpart, T. (2017). Message franking via committing authenticated encryption. *CRYPTO 2017*.
+- W3C Web Content Accessibility Guidelines (WCAG) 2.2.
+- Apple App Store Review Guideline 2.5.9.
+- EU General Data Protection Regulation, Article 9.
+- Illinois Biometric Information Privacy Act (BIPA).
 
 ---
 
-## 2. Product Vision & Non-Negotiable Principles (Hard Constraints)
-
-These are acceptance criteria, not aspirations. Each has a testable form.
-
-1. **Sensory-neutral spine.** One canonical object → many lossless projections. *Acceptance:* any content object can be fully consumed and acted upon through each supported projection with no information available only in one modality.
-2. **Voice-first, not voice-only.** *Acceptance:* structural navigation, status, and identity are conveyable without speech (earcons/spearcons/haptics), and every speech output has terse and verbose modes plus adjustable rate.
-3. **Finite by design.** *Acceptance:* no infinite scroll anywhere; every feed/session has a defined end state ("You're all caught up").
-4. **Interdependence is a feature.** *Acceptance:* asking for and offering help are first-class, reciprocal, reputation-building actions.
-5. **Anti-impersonation is core.** *Acceptance:* voice provenance/consent ledger, verified-voice signaling, and out-of-band safe-word verification ship in the inclusion+safety floor (Stage 2), not later.
-6. **Global South reachable.** *Acceptance:* a feature-phone user on 2G with no smartphone and no data plan can perform core social actions via IVR/USSD/SMS/WhatsApp.
-7. **Transparent, contestable moderation.** *Acceptance:* no silent shadowbanning; every enforcement action is disclosed to the affected user with the triggering reason and an appeal path.
-8. **BLV privacy threat model.** *Acceptance:* private-audio paths, observation-resistant PIN entry, camera bystander/document detection, an audio "screen-curtain," and minimal audio retention.
-9. **Accessibility peers, not tiers.** *Acceptance:* totally-blind, low-vision, and deafblind modes are peers; braille is a first-class output path.
-10. **Well-being over engagement.** *Acceptance:* success metrics measure connection quality and user-reported well-being, never time-on-app or session count as a primary KPI.
-
----
-
-## 3. What We Are Building vs. Explicitly NOT Building
-
-**Building:** a canonical non-visual content model; a multi-sensory projection layer; finite audio "episodes/digests"; live audio rooms with social presence; voice identity and vouching-based reputation; a voice-provenance and anti-impersonation trust layer; transparent human-in-the-loop moderation; an IVR/USSD/SMS/WhatsApp offline-first gateway; AI description/summarization/translation/navigation with uncertainty disclosure; a BLV-specific privacy/security layer.
-
-**NOT building:**
-- **NOT infinite scroll** or any engagement-maximizing/variable-reward feed.
-- **NOT a screen-reader-retrofitted visual app.**
-- **NOT voice-only** (speech cannot be the sole carrier of structure).
-- **NOT engagement-maximizing recommendation**; recommendation is transparent and user-tunable.
-- **NOT follower-count-based status**; reputation is reciprocity/vouching-based.
-- **NOT silent shadowbanning.**
-- **NOT ad-based monetization** as the assumed base case.
-- **NOT unrestricted AI companions**; companions (if built) ship only with strict dependency guardrails and are gated on validation.
-- **NOT a new language** ("Third Eye Language" means evolved registers/genres/conventions, not a constructed language).
-
----
-
-## 4. Core Architecture: The Sensory-Neutral Spine
-
-### 4.1 Concept
-A single **canonical interaction model** stores meaning and structure independent of any sensory form. A **projection layer** deterministically renders each object to any supported modality. No projection is authoritative; the canonical object is.
-
-### 4.2 Conceptual Data Model (canonical entities)
-- **Actor** — a participant (human or agent). Fields: stable ID, chosen self-description (text + optional self-recorded audio), voice-identity signature reference, earcon/auditory signature, verified-voice status, reputation graph edges (vouches, reciprocity), locale/language, preferred verbosity, preferred projections, accessibility profile (blind / low-vision / deafblind / other).
-- **Utterance/Post** — the atomic content object. Fields: authored content in a **modality-neutral structured representation** (semantic text + structured markup for emphasis/structure + optional original audio + attached media with mandatory descriptions), provenance record, timestamps, thread references, content-warning/sensitivity tags, language.
-- **Thread** — an ordered/branching set of Utterances with explicit structural relations (reply, quote, help-request, help-offer).
-- **Room** — a live or asynchronous audio space; has presence roster, spatial layout metadata, roles (host, speaker, listener, moderator, agent), recording-consent state.
-- **Episode/Digest** — a finite, time-boxed collection of objects with an explicit start and end, generated per-user.
-- **Relation** — reputation/vouch/reciprocity edges; help transactions.
-- **ProvenanceRecord** — voice/content provenance and consent assertions (see §9).
-- **RenderingHints** — optional per-object authoring hints (e.g., "this is a joke," pronunciation, emphasis) that inform, but never gate, projections.
-
-**Key rule:** any attribute that affects meaning must live on the canonical object, never only in a rendering. Alt text/descriptions for attached media are **mandatory** at authoring time (AI-assisted, human-confirmable), because a media object with no description is information available only in the visual projection — a spine violation.
-
-### 4.3 The Projection/Rendering Pipeline
-Canonical object → **Projection Resolver** (selects modalities from the consumer's accessibility profile + device capabilities + bandwidth) → **Modality Renderers**:
-
-- **Speech renderer** — emits SSML (W3C standard; `<prosody rate=…>` controls speaking rate in WPM, `<break>`, `<emphasis>`, `<voice>`, `<lang>`) to a TTS engine. Supports terse/verbose modes and per-user rate. Default speaking rate is user-configurable; experienced screen-reader users often consume speech well above conversational rates, so support a wide range (0.5×–4×+) and per-context overrides.
-- **Non-speech audio renderer** — maps structure/status/identity to earcons (abstract musical motifs), auditory icons (ecological/real-world sounds), and spearcons (time-compressed speech). Evidence: spearcons outperform traditional/hybrid auditory cues in navigation efficiency, accuracy, and learning rate, with learnability comparable to normal speech (Walker et al., *Human Factors*, 2013). A meta-analysis (*Auditory Perception & Cognition*, 2023) compares icons/earcons/spearcons/speech across accuracy, reaction time, workload, and dual-task interference — use it to select cue types per task.
-- **Spatial-audio renderer** — positions sound sources via HRTF/binaural rendering (Web Audio API `PannerNode` HRTF mode; for higher fidelity, custom HRTF convolution or ambisonic decoding via libraries like Google Omnitone or IRCAM binauralFIR). Requires headphones for correct localization.
-- **Braille renderer** — emits Unicode Braille Patterns (U+2800–U+28FF) and uses WAI-ARIA braille semantics (`aria-braillelabel`, `aria-brailleroledescription`, which must always have non-braille equivalents) to drive refreshable braille displays via platform braille APIs/BRLTTY. First-class, not derived from the speech string.
-- **Haptic renderer** — maps a standardized haptic vocabulary (see §7) to platform haptic APIs (iOS Core Haptics, Android Vibrator/VibrationEffect, Web Vibration API where available).
-- **Low-vision visual renderer** — high-contrast, magnification-friendly, reflow-safe visual layout meeting WCAG 2.2 (contrast, text resize, touch-target, and reflow criteria). A peer projection, not the master.
-- **IVR/voice-phone renderer** — renders objects to DTMF-navigable / speech-recognition voice menus over PSTN; terse by necessity.
-
-**Parity contract (Stage 0 gate):** an automated conformance test must prove that for a corpus of representative objects, each projection exposes the same set of semantic facts and the same set of available actions. Any fact/action present in one projection and absent in another fails the build.
-
----
-
-## 5. Feature Specifications by Domain
-
-Each domain: *Purpose · Research basis · Requirements · Acceptance criteria · Priority.* Priority is **MVP**, **Later**, or **Gated** (blocked on a Stage-1 experiment).
-
-### 5.1 Voice-First Interaction
-- **Purpose:** primary interaction is conversational and auditory.
-- **Research basis:** voice-first-not-voice-only; listening-fatigue/cognitive-load management.
-- **Requirements:** conversational navigation assistant; adjustable speech rate; terse/verbose toggle; barge-in (interrupt TTS); "repeat/slower/skip" universal commands; whisper/private-audio mode; consistent verb grammar across the app.
-- **Acceptance:** any task completable by voice within a defined command grammar; speech rate adjustable 0.5×–4×+; every long output has a terse form; user can interrupt at any time.
-- **Priority:** MVP.
-
-### 5.2 Non-Speech Audio & Spatial Audio
-- **Purpose:** offload structure/status/identity from speech to reduce fatigue and add "glanceable" awareness.
-- **Research basis:** earcons/auditory icons/spearcons; audio "glanceability" layer (Gated).
-- **Requirements:** a standardized, documented earcon/auditory-icon/spearcon library (§7); spatialized presence in rooms; consistent mapping across the app; user-adjustable non-speech volume independent of speech.
-- **Acceptance:** users can identify core events/objects by non-speech audio alone after a short onboarding; spatial positions in a room are distinguishable with headphones.
-- **Priority:** MVP for basic earcons; **Gated** for the "audio glanceability layer" and social earcon vocabulary learnability (Stage 1).
-
-### 5.3 Navigation (Finite Episodes, Spatial Rooms, Rotor/Gesture/Braille)
-- **Purpose:** navigate without vision and without infinite feeds.
-- **Research basis:** reject infinite scroll; finite digests; rotor/gesture grammars from platform accessibility.
-- **Requirements:** finite Episode/Digest generator with explicit end; rotor-style attribute navigation (by author, thread, unread, help-requests); consistent gesture grammar (§7); braille-navigable structures; NO endless auto-loading.
-- **Acceptance:** every feed terminates with an explicit "caught up" state; navigation works via touch gestures, keyboard, braille display, and voice equivalently.
-- **Priority:** MVP.
-
-### 5.4 Identity & Profiles Without Images
-- **Purpose:** identity that does not depend on photographs.
-- **Research basis:** voice identity; chosen self-description; reputation via reciprocity/vouching; audibly-signaled avatars/earcon signatures.
-- **Requirements:** chosen self-description (text + optional self-recorded intro); an **earcon/auditory signature** per actor; verified-voice badge; reputation surfaced as reciprocity/vouches, NOT follower counts.
-- **Acceptance:** an actor is recognizable across projections (name, self-description, earcon signature, optional verified voice); no follower-count leaderboard exists.
-- **Priority:** MVP (earcon signatures Later if needed).
-
-### 5.5 Live Audio Rooms & Social Presence
-- **Purpose:** synchronous voice community.
-- **Research basis:** voice-first sociality; spatial audio for presence; moderation constraints.
-- **Requirements:** scalable rooms with roles; spatialized speaker presence; recording-consent state enforced and audible; in-room moderation controls; graceful low-bandwidth degradation.
-- **Acceptance:** rooms scale to target concurrency (separate small publisher set from large listener set); recording state is always disclosed; moderators can act in real time.
-- **Priority:** MVP (spatial presence Later/Gated).
-
-### 5.6 Safety/Trust/Reputation & Anti-Impersonation
-- **Purpose:** prevent voice-clone impersonation and build durable trust.
-- **Research basis:** Microsoft's VALL-E (Jan 2023 arXiv, "Neural Codec Language Models are Zero-Shot Text to Speech Synthesizers," trained on 60,000 hrs of speech from 7,000+ speakers) can "synthesize high-quality personalized speech with only a 3-second enrolled recording of an unseen speaker as an acoustic prompt"; provenance/consent ledger; verified voice; out-of-band/safe-word verification.
-- **Requirements:**
-  - **Voice provenance & consent ledger:** record when a voice is enrolled, consented uses, and whether an utterance's audio is claimed as authentic-human, synthetic-with-consent, or unverified.
-  - **Verified-voice signaling:** a badge/earcon indicating a verified authentic-human voice for that actor.
-  - **Safe-word / out-of-band verification:** for high-stakes interactions (help requests involving money, sensitive disclosures), support a pre-agreed safe word and an out-of-band challenge.
-  - **Deepfake/synthetic-voice detection** as a signal (not a sole gate), acknowledging detector limitations (below).
-  - **Content-provenance standards:** apply C2PA/Content Credentials (now ratified as an ISO standard; supports audio) to attached media and, where feasible, to synthetic-voice assertions; layer watermarking (Google SynthID audio, Meta AudioSeal) where a first-party generator is used.
-- **Acceptance:** any utterance carries a provenance state; users can trigger safe-word verification; verified-voice status is visible/audible across projections.
-- **Priority:** **Core / Stage 2 floor** (provenance ledger, verified voice, safe-word MVP; detection as a Later-improving signal).
-- **Honest limits — anti-spoofing does not generalize.** The **ASVspoof 5 challenge (Interspeech 2024)** — the first edition using large-scale crowdsourced data (Multilingual LibriSpeech) plus adversarial attacks — saw baseline systems (RawNet2, AASIST) degrade to **EER > 29%** (vs. 0.22% for the top ASVspoof 2019 system and 1.32% for the best ASVspoof 2021 logical-access system), with top-5 closed-condition submissions reaching only sub-15% EER. Adversarial attacks (Malafide, Malacopula) and neural codecs (Encodec) degraded detection most, and overfitting to known attacks was explicit. Commercial vendors publish high numbers (Pindrop claims ~99% accuracy and >90% on unseen deepfakes; Resemble Detect ~94.2% on clean audio in an independent blog test; ID R&D IDLive Voice needs ~3s of speech) but these are **vendor-reported, not standardized benchmarks**, and independent tests show open-source detectors flagging synthetic audio only ~78% of the time and all tools struggling with compressed/phone-quality audio. **Treat detector scores as advisory; provenance metadata and out-of-band verification are the real trust backbone** (metadata and watermarks are strippable — use layered defense).
-
-### 5.7 Mental Health & Anti-Addiction
-- **Purpose:** protect a loneliness-vulnerable population from well-being-hostile design.
-- **Research basis:** elevated loneliness risk (§1); reject engagement maximization.
-- **Requirements:** finite sessions; no variable-reward mechanics; usage-awareness and natural stopping points; opt-in "quiet hours"; no dark patterns; connection-quality nudges (reciprocity, small groups) over reach-maximizing nudges.
-- **Acceptance:** no infinite feed; no streaks/variable-reward loops; session end states present; well-being survey instrument integrated.
-- **Priority:** MVP.
-
-### 5.8 Creator Tools & Monetization
-- **Purpose:** let creators produce accessible audio-first content and (possibly) earn.
-- **Research basis:** monetization is unresolved; creator memberships/tips and accessibility-as-a-service as candidate models.
-- **Requirements:** audio-first authoring with mandatory descriptions for any media; creator memberships/tips; an optional accessibility-as-a-service marketplace (e.g., paid human description/verification); transparent, tunable (non-engagement-maximizing) discovery.
-- **Acceptance:** creators can publish fully-accessible content; at least one non-ad revenue path is instrumented for experimentation.
-- **Priority:** Stage 3 (creator memberships/tips), with hooks in MVP.
-
-### 5.9 Content Moderation (Audio at Scale)
-- **Purpose:** keep users safe without silencing disabled/multilingual/non-standard-dialect creators.
-- **Research basis:** ASR transcription loses tone/sarcasm; ASR is biased against minority dialects and multilingual speakers — Harris et al. ("Modeling Gender and Dialect Bias in Automatic Speech Recognition," *Findings of EMNLP* 2024, Georgia Tech & Stanford) found that across wav2vec 2.0, HuBERT, and Whisper, "SAE [Standard American English] transcription significantly outperformed each minority dialect" (AAVE, Spanglish, Chicano English) on 13 hours of podcast audio, with men transcribed more accurately than women; opaque moderation/shadowbanning disproportionately harms marginalized creators.
-- **Requirements:** transcription + classification as **triage only**; human-in-the-loop review with full audio + confidence-scored transcript; language ID before ASR with graceful fallback; **no silent shadowbanning**; disclosed enforcement with reason; appeals routed to different reviewers than the initial decision; **community juries** for contestable cases; transparency reports; log decisions and policy violations, not full transcripts, with defined retention.
-- **Acceptance:** every enforcement action is disclosed with a reason and an appeal path; appeal reviewers differ from initial reviewers; dialect/language fairness is measured and reported.
-- **Priority:** MVP for transparency/appeals; community juries Stage 3.
-
-### 5.10 Accessibility Beyond Screen Readers (Braille / Low-Vision / Deafblind / Haptic)
-- **Purpose:** serve the full BLV spectrum as peers.
-- **Research basis:** braille as first-class (note refreshable-braille cost barriers); low-vision as peer; deafblind mode (braille+haptic, no audio reliance); haptic vocabularies.
-- **Requirements:** first-class braille output (Unicode braille + ARIA braille semantics + BRLTTY/platform braille); low-vision mode (WCAG 2.2 contrast/resize/reflow); **deafblind mode** relying on braille + haptics with zero audio dependency; standardized haptic vocabulary.
-- **Acceptance:** a deafblind user can complete core social actions with braille + haptics and no audio; low-vision mode meets WCAG 2.2 AA; all structure is braille-navigable.
-- **Cost note:** refreshable braille displays commonly cost several thousand dollars (piezoelectric-crystal actuators run $6–$10 each, pushing device cost to $2,000–$8,000); Orbit Reader-class devices target the several-hundred-dollar range. Do not assume braille-display ownership; braille output must degrade gracefully and never be the sole path.
-- **Priority:** Stage 2 floor (braille + low-vision), deafblind mode Stage 2/3.
-
-### 5.11 Global South / Offline-First
-- **Purpose:** reach the 89% of BLV people in LMICs, including feature-phone and no-data users.
-- **Research basis:** offline-first mandatory; IVR/USSD/SMS/WhatsApp; low-bandwidth codecs; low-resource-language TTS/ASR gaps. (GSMA notes over 40% of mobile connections in Sub-Saharan Africa are still on 2G.)
-- **Requirements:**
-  - **IVR** dial-in (PSTN) for full core social actions by voice.
-  - **USSD** session menus via aggregator (e.g., Africa's Talking) with `CON`/`END` session semantics; works on 2G feature phones with no internet; sessions time out ~180s.
-  - **SMS** notifications/actions; **WhatsApp Business API** bridge.
-  - **Low-bandwidth audio** via **Opus** (RFC 6716; voip mode ~16–24 kbps intelligible, ~32 kbps clean voice; DTX + in-band FEC for lossy networks — this is the WhatsApp voice-note range).
-  - **Offline caching / store-and-forward** sync patterns for intermittent connectivity.
-  - **Low-resource-language TTS/ASR** with honest coverage mapping (see §6); fallbacks where a language is unsupported.
-- **Acceptance:** a feature-phone user with no data plan can post, listen to a digest, and respond via IVR/USSD; audio works on constrained 2G links.
-- **Priority:** Stage 2 floor (IVR/USSD/SMS core), WhatsApp Later.
-
-### 5.12 AI Integration
-- **Purpose:** description, summarization, translation, and navigation assistance with honesty guardrails.
-- **Research basis:** image/scene description with confidence signaling + verify affordances; confabulation safeguards; on-device vs cloud trade-offs; transparent tunable recommendation; AI companions only with dependency guardrails.
-- **Requirements:**
-  - **Scene/image description** with **uncertainty disclosure** and a **verify affordance** (escalate to a human, or cross-check). Precedent: Be My Eyes' "Be My AI" (GPT-4-powered) and Microsoft Seeing AI; users report high utility but real misidentification (users describe "a tendency to misidentify less focused items… it will make its best guess").
-  - **Summarization/digest** for finite episodes.
-  - **Translation** across languages.
-  - **Conversational navigation assistant.**
-  - **Confabulation safeguards:** disclose confidence, cite/limit claims, and warn that longer/more-detailed descriptions hallucinate more. (On the standard CHAIR metric, hallucination *rises* with description length — SOTA methods report CHAIR_I ~16.7 at 64 tokens vs ~30.6 at 128 tokens; MMHal-Bench shows LLaVA-1.5-7B hallucinating in ~61.5% of responses. Small on-device models — Moondream, MiniCPM-V, Llama 3.2 Vision — are flagged for higher hallucination/error rates. This matters because blind users want *detailed* descriptions, exactly where hallucination is worst.)
-  - **On-device vs cloud:** prefer on-device for privacy-sensitive camera input where quality suffices; use cloud for hard scenes with explicit user awareness that the image leaves the device.
-  - **Recommendation:** transparent and user-tunable, never engagement-maximizing.
-  - **AI companions:** only with strict dependency guardrails; **Gated**.
-- **Acceptance:** every AI description carries a confidence signal and a verify path; recommendation settings are user-visible and tunable; camera-to-cloud requires disclosure.
-- **Priority:** MVP for description/summarization/translation with safeguards; companions Gated.
-
-### 5.13 Privacy & Security (BLV Threat Model)
-- **Purpose:** defend against threats the user literally cannot see.
-- **Research basis:** shoulder-surfers unseen; PINs voiced aloud; cameras capturing bystanders/sensitive docs; need private-audio paths, observation-resistant PIN, camera bystander/document detection, audio screen-curtain, minimal retention.
-- **Requirements:**
-  - **Private-audio paths:** bone-conduction/earbud/whisper mode so sensitive output isn't broadcast.
-  - **Observation-resistant auth:** OneButtonPIN-style haptic PIN entry (single button, counted vibrations imperceptible to bystanders). In the Watson et al. study (*Proceedings of the ACM on Human-Computer Interaction*, 2022; U. Waterloo & RIT; 9 BLV + 10 sighted "shoulder surfers"), "Every participant was able to successfully guess users' PINs using traditional methods, but no one could successfully guess code input using OneButtonPIN" (entry accuracy 83.6% vs 78.1% traditional). Prefer **passkeys/WebAuthn** where accessible, with carefully screen-reader-tested flows and accessible multi-path recovery (avoid QR-only; announce timers; support autofill).
-  - **Camera bystander/document detection:** warn when a bystander face or sensitive document is in frame before capture/description.
-  - **Audio "screen-curtain":** an equivalent to the visual screen-curtain that suppresses sensitive audio output in public contexts.
-  - **Minimal audio retention:** default to not storing raw audio/voiceprints; short retention windows; user-controlled.
-- **Acceptance:** PIN entry is observation-resistant; sensitive output can be routed privately; camera warns on bystanders/documents; raw audio retention is minimized and disclosed.
-- **Priority:** Stage 2 floor (observation-resistant auth, private audio, retention), camera detection Later.
-
----
-
-## 6. Recommended Technology Stack & Build-vs-Buy Guidance
-
-Real options with trade-offs; the team retains judgment.
-
-**TTS (build-on-open or buy):**
-- *Open:* **Piper** (natural, efficient, good for on-device/low-resource), **Coqui XTTS v2** (multilingual, future uncertain since Coqui's backer wound down), **eSpeak-NG** (robotic but tiny and huge language coverage — good last-resort fallback), **Meta MMS-TTS** (1,100+ languages but with notable gaps, e.g., excludes Pashto).
-- *Buy:* **Azure Neural TTS** (broad coverage incl. some low-resource locales — e.g., the only verified commercial Pashto voices in one 2026 study), Google Cloud TTS, Amazon Polly.
-- *Guidance:* multi-engine abstraction; pick per-language by quality; fall back to eSpeak-NG for unsupported languages rather than failing.
-
-**ASR (build-on-open or buy):**
-- *Open:* **OpenAI Whisper** (trained on 680k hrs, ~100 languages, robust; large models need 8GB+ VRAM), **Vosk**/**Kaldi** (streaming/live), **NVIDIA NeMo**; SSL backbones (wav2vec 2.0, HuBERT, WavLM, XLS-R) for fine-tuning low-resource languages.
-- *Buy:* Google STT (low latency), Azure.
-- *Guidance:* run **language ID before ASR**; fine-tune Whisper for priority low-resource languages (documented WER gains, e.g., Welsh 31.86%→18.06% after LoRA fine-tuning); never assume English.
-
-**Real-time audio infrastructure (buy-managed then self-host):**
-- **LiveKit** (open-source, Apache-2.0, Go, SFU; SDKs across 11 frameworks; Agents framework for AI participants; DTLS-SRTP by default with optional E2EE via WebRTC Insertable Streams). *Alternatives:* **mediasoup** (mature, flexible), **Janus** (battle-tested, SIP gateway plugin for PSTN bridging), managed **Agora/Daily/Twilio/Amazon Chime**.
-- *Architecture:* **SFU** for group rooms (forwards without re-encoding; scales; separate small publisher set from large listener set); P2P only for 1:1 (P2P scales O(N²), breaks down above ~4 participants); MCU only to bridge PSTN/legacy SIP. Use **simulcast** for heterogeneous networks.
-- *Guidance:* start on managed (LiveKit Cloud) for MVP; self-host when scale/cost/data-sovereignty demand it. Note: E2EE (Insertable Streams) precludes server-side recording/AI on that stream.
-
-**Telephony / Global South (buy aggregator + open telephony):**
-- **Africa's Talking** (USSD/Voice/SMS/Airtime across multiple African markets, free sandbox, `CON`/`END` USSD semantics); **Twilio**/**Vonage** for global voice/SMS; **WhatsApp Business API**.
-- *Open telephony:* **Asterisk** / **FreeSWITCH** for self-hosted IVR.
-- *Codec:* **Opus** (mandatory in WebRTC; 6–510 kbps; SILK+CELT; DTX + FEC; voip mode ~16–32 kbps for voice).
-
-**AI / VLM (buy API + on-device):**
-- *Cloud VLMs:* GPT-class, Claude, Gemini. Per-image token mechanics differ sharply — Gemini uses a flat ~258 tokens/image regardless of resolution (cheapest for high-res); OpenAI tiles at ~170 tokens/512px tile + 85 base (~765 tokens for 1024²); Anthropic ~1,380 tokens/megapixel (~1,334 for 1024², most expensive per image). An independent 2026 comparison spanned ~13× per-image cost (Qwen VL Max $0.0003 → Claude $0.0040) with ~1.2–2.5s/image latency. Cloud accuracy is higher but adds latency, per-image cost, and sends user images off-device.
-- *On-device VLMs:* **Apple Foundation Models** framework (on-device ~3B model, image input on newer OS; no per-token cost, offline, private), **Google Gemini Nano** (~3.25B), **Llama 3.2 Vision** (11B/90B), **Moondream 2** (~2B; runs <4GB VRAM; captioning/VQA/OCR), **Qwen-VL** (3B–72B). On-device trades some accuracy for privacy/latency/cost — the right default for camera input capturing sensitive surroundings.
-- *Guidance:* on-device first for privacy-sensitive scenes; cloud with explicit disclosure for hard scenes; always attach a confidence signal and verify path.
-
-**Anti-spoofing / provenance (buy signal + open + standards):**
-- *Detection vendors:* **Pindrop**, **ID R&D (IDLive Voice)**, **Resemble Detect** — treat published accuracy as vendor-reported, not standardized. *Open baselines:* AASIST/RawNet2 (ASVspoof).
-- *Provenance:* **C2PA/Content Credentials** (ISO standard; supports audio) for media and synthetic-voice assertions; **Google SynthID** / **Meta AudioSeal** watermarking where a first-party generator is used.
-- *Guidance:* detection is advisory only (poor generalization to unseen attacks — see §5.6); provenance + watermark + out-of-band verification as layered defense.
-
-**Auth (build-on-standard + open):**
-- **Passkeys / WebAuthn (FIDO2)** with rigorously screen-reader-tested flows (avoid QR-only, announce timers, support autofill, accessible recovery with multiple paths — audits found accessibility defects common before/after passkey flows and inconsistent autocomplete for screen-reader users); **OneButtonPIN-style** haptic PIN as an observation-resistant local factor. Use a maintained WebAuthn server library; consider an identity platform to avoid rolling crypto.
-
-**Client platform APIs:**
-- iOS **UIAccessibility/VoiceOver**, **Core Haptics**; Android **accessibility/TalkBack**, **VibrationEffect**; Web **WCAG 2.2 / WAI-ARIA** (incl. braille semantics), **Web Audio API**, **Web Vibration API**; **BRLTTY**/platform braille for refreshable displays.
-
-**Federation (decision required):**
-- **ActivityPub** (W3C; the Fediverse — Mastodon, PeerTube, Pixelfed) for interoperability — see §13 for the ghettoization-vs-federation decision.
-
----
-
-## 7. Non-Visual "Design System" (Shared Spec the Team Must Build)
-
-This is a first-class deliverable, versioned like a visual design system.
-
-- **Earcon library:** abstract musical motifs for structural events (new episode, end-of-feed, reply, mention, help-request, error, success). Documented pitch/timbre/rhythm; consistent across app. (For prototyping, CC0 corpora like BeepBank-500 exist.)
-- **Auditory-icon library:** ecological sounds for object types/actions where a real-world metaphor exists.
-- **Spearcon usage:** time-compressed speech for menu/list items to speed navigation; generated deterministically from labels.
-- **Haptic vocabulary:** named patterns (confirm, warn, incoming, boundary, count-tick for PIN) mapped to Core Haptics / VibrationEffect; must be distinguishable and documented; drives deafblind mode.
-- **Spatial-audio conventions:** where categories of sources sit in the HRTF field (e.g., self center, speakers arced front, system left, notifications right); consistent so position carries meaning.
-- **Speech verbosity levels:** at least terse / standard / verbose, with a defined rule for what each includes; plus per-user rate.
-- **Gesture grammar:** a consistent verb set (next/previous, activate, rotor-change, back, help) mapped identically across touch, keyboard, braille, and voice.
-
-**Deliverable:** a living "Sensory Style Guide" with audio/haptic assets, semantics, and code bindings. Earcon social-vocabulary **learnability is Gated** (Stage 1).
-
----
-
-## 8. Data Model & APIs Direction (Conceptual)
-
-- **Core entities:** Actor, Utterance/Post, Thread, Room, Episode/Digest, Relation, ProvenanceRecord, RenderingHints (see §4.2).
-- **Projection API:** `resolveProjections(object, consumerProfile, deviceCaps, bandwidth) → [Projection]`; each renderer implements a common interface `render(object) → modalityOutput` and must pass the **parity contract** conformance test (same facts + same actions across modalities).
-- **Provenance API:** `assertProvenance(utterance, state, consent)` and `verifyOutOfBand(actor, challenge)`.
-- **Moderation API:** `triage(utterance) → {labels, confidence}` (advisory) → `humanReview(case)` → `discloseAction(actor, reason, appealPath)`.
-- **Gateway API:** channel adapters (IVR, USSD, SMS, WhatsApp, app) that all read/write the same canonical objects — a channel is just another projection + input path.
-- **Interoperability:** design objects to map to **ActivityPub** Activity Streams 2.0 where possible, so federation remains an option (decision pending, §13).
-
----
-
-## 9. Security, Privacy & Trust Engineering Requirements (Concrete)
-
-1. **Data minimization:** default to not persisting raw audio; store derived structured content. If voiceprints/embeddings are created, treat them as **special-category biometric data**.
-2. **Biometric legal compliance:** voiceprints are explicitly biometric identifiers under **Illinois BIPA** (the only U.S. biometric law with a private right of action; statutory damages $1,000/$5,000 per violation) and a **GDPR Article 9 special category** requiring explicit consent. Also account for Texas CUBI, Washington, and the EU AI Act. *Requirement:* explicit opt-in consent before creating any voiceprint; allow full disable of speaker-ID/voice-embedding creation; published retention schedule; deletion rights; DPIA before deployment.
-3. **Encryption:** TLS in transit; encrypt biometric templates at rest; consider E2EE for private rooms (LiveKit Insertable Streams) — noting E2EE precludes server-side recording/AI on that stream.
-4. **On-device processing** preferred for camera/voice where feasible (FIDO2/passkey pattern: templates never leave device).
-5. **Observation-resistant auth:** OneButtonPIN-style haptic entry; passkeys/WebAuthn with accessible flows and multi-path recovery.
-6. **Provenance & consent ledger:** per-utterance provenance state; consent records for every voice processed.
-7. **Audio screen-curtain & private-audio paths** enforced in public contexts.
-8. **Camera bystander/document detection** before capture/description.
-9. **Anti-impersonation** layered defense: verified voice + provenance + advisory detection + out-of-band safe word.
-
----
-
-## 10. Moderation & Governance Operations
-
-- **Pipeline:** language-ID → ASR (confidence-scored) → classifier triage → **human review with full audio + transcript + user history** → decision. Transcription/classification never auto-punish for nuanced categories (tone/sarcasm/dialect).
-- **Reviewer interface:** audio playback with waveforms, low-confidence words flagged, plain-language model rationale, quick actions; QA sampling (a share of decisions silently re-reviewed) to catch drift/bias; target review times kept short with escalation on reviewer disagreement.
-- **No silent shadowbanning:** every action disclosed to the user with the triggering reason.
-- **Appeals:** easy to file; show what triggered the action; routed to **different reviewers**; successful appeals become training data.
-- **Community juries:** panels of users adjudicate contestable/borderline cases.
-- **Transparency reports:** periodic public reporting incl. dialect/language fairness metrics.
-- **Retention:** log decisions and policy violations, not full transcripts; defined expiry (a common pattern is 90-day auto-expiry).
-
----
-
-## 11. Staged Build Plan with Falsifiable Gates
-
-**Stage 0 — Commit to the spine; prove lossless multi-sensory parity.**
-- Deliverable: canonical object model + projection layer for ONE object type across speech, non-speech audio, braille, haptic, low-vision visual, and IVR.
-- **Gate:** automated parity conformance passes (same facts + actions across all projections). *If it fails, stop and redesign.*
-
-**Stage 1 — Validate the riskiest bets before building broadly (all Gated).**
-- **Experiment A:** RCT of finite-digest vs infinite-scroll on well-being for BLV users. *Gate:* finite design must not be worse on well-being and should show benefit.
-- **Experiment B:** earcon/spearcon **social-vocabulary learnability** study. *Gate:* users learn and retain the core vocabulary to a target accuracy.
-- **Experiment C:** audio **"glanceability" layer** usability. *Gate:* users gain awareness from non-speech audio without added fatigue.
-- *Features dependent on these (glanceability layer, social earcon vocabulary, finite-digest as the core feed) do not go to broad build until gates pass.*
-
-**Stage 2 — Build the inclusion + safety floor (before growth features).**
-- Braille + low-vision + audio parity in production; IVR/USSD/SMS gateway; core anti-impersonation (provenance ledger, verified voice, safe-word verification); observation-resistant auth; minimal-retention privacy; transparent moderation with appeals.
-- **Gate:** a feature-phone user can perform core actions; a deafblind user can perform core actions with braille+haptics; observation-resistant auth resists a shoulder-surfer test; every enforcement action is disclosed and appealable.
-
-**Stage 3 — Governance + monetization.**
-- Community juries; creator memberships/tips; accessibility-as-a-service marketplace; transparency reporting cadence; federation decision executed (if chosen).
-- **Gate:** at least one non-ad revenue path validated with real users; governance process demonstrably contestable.
-
-**MVP vs Later vs Gated summary:** MVP = spine + voice-first + finite navigation + identity + basic rooms + AI description/summarization/translation with safeguards + transparency/appeals + core privacy. Stage 2 floor = braille/low-vision/deafblind, IVR/USSD/SMS, anti-impersonation, observation-resistant auth. Later = WhatsApp bridge, spatial presence, camera bystander detection, earcon signatures. Gated = finite-digest well-being claim, earcon social vocabulary, audio glanceability, AI companions.
-
----
-
-## 12. Success Metrics & Acceptance Criteria (Well-Being-Oriented)
-
-- **Multi-sensory rendering parity:** % of object types passing the parity conformance test = target 100% for shipped types. (Primary architectural KPI.)
-- **Inclusion floor:** core-action completion rate via IVR/USSD on a feature phone; deafblind core-action completion via braille+haptics; low-vision WCAG 2.2 AA conformance.
-- **Anti-impersonation efficacy:** % of utterances with a provenance state; safe-word verification availability; time-to-flag suspected impersonation; (advisory) detector performance tracked but not sole gate.
-- **Moderation fairness/contestability:** appeal availability = 100% of actions; appeal overturn rate by dialect/language/region (monitored for disparity); % actions disclosed with reason = 100%; zero silent shadowbans.
-- **Well-being (NOT engagement):** user-reported connection quality and loneliness measures over time; reciprocity/help-transaction completion; explicit stopping-point usage. **Do not** use time-on-app, session count, or DAU as primary success KPIs.
-
----
-
-## 13. Honest Risks, Open Problems & Decisions Required
-
-**Unproven / conjectural (must pass Stage 1 before broad build):**
-- That finite digests beat infinite scroll on well-being for this population.
-- That a learnable earcon/spearcon **social** vocabulary can carry structural load at scale.
-- That an audio "glanceability" layer improves awareness without adding fatigue.
-- That AI companions can be offered without harmful dependency.
-
-**Genuinely unresolved:**
-- **Business model / funding.** No ad-based model is likely to close for this market. Base case: cooperative / nonprofit / public-benefit / philanthropic / subscription / creator-fee / accessibility-as-a-service. This is a leadership decision, not an engineering default.
-- **Ghettoization vs federation.** A blind-first network risks isolating users from mainstream social graphs. **ActivityPub** federation preserves interoperability (a Mastodon-style network where users on different servers interact) but complicates moderation, provenance, and network effects — the Fediverse shows both centralization tendencies within instances and social-graph fragmentation across incompatible protocols (ActivityPub vs Nostr vs AT Protocol). Decide deliberately.
-
-**Known technical limits to state plainly:**
-- Synthetic-voice detection does **not** generalize to unseen attacks (ASVspoof 5 baselines hit EER > 29%); provenance and out-of-band verification are the real backbone.
-- ASR is biased against minority dialects/multilingual speakers — hence human-in-the-loop.
-- On-device VLMs trade accuracy for privacy; all AI description can confabulate, more so on longer/detailed descriptions — hence uncertainty disclosure + verify affordances.
-- Refreshable braille hardware is expensive ($2,000–$8,000 typical) and not universally owned — braille must never be the sole path.
-- Low-resource-language TTS/ASR has real coverage gaps (e.g., MMS-TTS excludes Pashto) — plan fallbacks and honest per-language coverage.
-
-**Decisions required before/at kickoff (checklist):**
-1. **Funding model** to pursue (co-op / nonprofit / subscription / creator-fee / hybrid)?
-2. **Federation:** standalone vs ActivityPub-federated (and moderation implications)?
-3. **Biometric posture:** do we ever create voiceprints? If yes, jurisdictions, consent UX, retention, and BIPA/GDPR compliance plan.
-4. **Priority languages/markets** for Stage 2 (drives TTS/ASR investment and IVR/USSD aggregator choice).
-5. **Managed vs self-hosted** real-time audio at launch (LiveKit Cloud vs self-host / mediasoup / Janus).
-6. **On-device vs cloud AI default** and the disclosure UX when images leave the device.
-7. **Recording/E2EE policy** for rooms (E2EE precludes server-side moderation/AI on that stream).
-8. **Governance charter:** how community juries are constituted and bounded.
-
----
-
-## 14. Appendix
-
-### 14.1 Glossary
-- **Sensory-neutral spine:** the canonical, modality-independent content/interaction model.
-- **Projection:** a rendering of a canonical object into one modality (speech, braille, haptic, etc.).
-- **Earcon:** abstract musical sound representing an event/object.
-- **Auditory icon:** real-world/ecological sound with a metaphoric relation to its referent.
-- **Spearcon:** time-compressed speech cue.
-- **HRTF/binaural:** head-related transfer function; spatializes mono sources for headphones.
-- **SSML:** Speech Synthesis Markup Language (W3C); controls rate/pitch/emphasis/pauses/voice.
-- **SFU:** Selective Forwarding Unit; forwards media without re-encoding for scalable rooms.
-- **USSD:** session-based feature-phone protocol (`*123#`), no internet required.
-- **IVR:** interactive voice response over PSTN.
-- **Opus:** open royalty-free audio codec (RFC 6716), efficient at low bitrates.
-- **C2PA / Content Credentials:** signed content-provenance standard (ISO); supports audio.
-- **OneButtonPIN:** haptic, observation-resistant PIN entry for BLV users.
-- **WebAuthn/passkeys:** FIDO2 public-key authentication.
-- **BIPA / GDPR Art. 9:** biometric-data legal regimes (voiceprints are covered).
-- **ActivityPub:** W3C federation protocol (the Fediverse).
-- **ASVspoof:** the standard anti-spoofing/deepfake-speech detection challenge series; EER is its error metric.
-- **Deafblind mode:** braille + haptic interaction with no audio reliance.
-
-### 14.2 Requirement → Research-Basis Mapping
-- Sensory-neutral spine, parity contract (§4, §11 Stage 0) → sensory-neutral spine thesis.
-- Voice-first-not-voice-only, verbosity/rate, non-speech audio (§5.1–5.2, §7) → speech is serial/fatiguing; earcons/spearcons carry structure (Walker et al. 2013).
-- Finite episodes / anti-addiction (§5.3, §5.7) → reject infinite scroll; loneliness-risk duty of care (Dunlop et al. 2025; Brunes et al. 2019).
-- Interdependence/help features (§5.4, §5.8) → interdependence-by-design.
-- Voice provenance, verified voice, safe word (§5.6, §9) → VALL-E 3-second clone; anti-impersonation core; ASVspoof 5 generalization failure.
-- IVR/USSD/SMS/WhatsApp, Opus, offline (§5.11, §6) → 89% in LMICs (Orbis/WHO); offline-first mandatory.
-- Transparent contestable moderation, community juries (§5.9, §10) → ASR dialect bias (Harris et al., EMNLP 2024); shadowban harms.
-- Braille/low-vision/deafblind/haptics (§5.10, §7) → accessibility beyond screen readers; braille cost barriers.
-- AI with uncertainty/verify, on-device vs cloud (§5.12) → confabulation safeguards (CHAIR/MMHal-Bench); Be My AI precedent.
-- BLV privacy, OneButtonPIN, screen-curtain (§5.13, §9) → distinct BLV threat model (Watson et al. 2022).
-- Identity without images, reputation via vouching (§5.4) → identity without images.
-- Business model open; federation question (§13) → honest open problems.
-- Staged build with falsifiable gates (§11) → recommended staged plan.
-
-## Contributors
-
-- Taha Mahmoodi
-- Said Towfiq Mowafaq
+*Third Eye Worldwide · teww.org · Free, open-source technology for blind and low-vision people. Built from inside the experience.*
