@@ -3,7 +3,7 @@
 **Author:** Said Mohaddes Sadeqi
 **Affiliation:** Third Eye Worldwide
 **Date:** July 2026
-**Status:** Approved for build. This specification supersedes all earlier drafts, including the v1.0 Engineering Build Instruction Package previously published in this repository. All major decisions are settled unless explicitly marked open in §13.2.
+**Status:** Beta built; closed beta testing underway. This document is the v2.0 build specification the beta was built to; it supersedes all earlier drafts, including the v1.0 Engineering Build Instruction Package previously published here. Closed beta testing with blind and low-vision testers (§11) has already driven significant changes to the product — those changes are held back from this public specification and will be published when the stable **v1.0** release becomes public. Stable v1 is in active development (currently **v0.8.2**); the team aims to make it publicly available by the end of August 2026. Decisions marked open in §13.2 remain with leadership; everything else here is settled.
 
 ## Abstract
 
@@ -299,14 +299,16 @@ The team is roughly 10–13 people: a product lead; two web engineers (one acces
 
 The timeline is roughly 9–12 months:
 
-| Months | Work |
-|---|---|
-| 0–1 | Architecture, accessible design system, infrastructure, threat model, consent and legal |
-| 2–4 | Web core: record, play, timeline, transcripts, channels, search; moderator console; self-hosted speech; five languages |
-| 4–5 | Web beta by invite wave, with real screen-reader testers; loneliness baseline |
-| 5–8 | Native iOS and Android; encrypted DMs |
-| 8–10 | Mobile beta via TestFlight and Play closed testing; IVR pilot |
-| 10–12 | Hardening, go/no-go gates, accessibility statement and VPAT, launch readiness |
+| Months | Work | Status |
+|---|---|---|
+| 0–1 | Architecture, accessible design system, infrastructure, threat model, consent and legal | ✅ Complete |
+| 2–4 | Web core: record, play, timeline, transcripts, channels, search; moderator console; self-hosted speech; five languages | ✅ Complete |
+| 4–5 | Web beta by invite wave, with real screen-reader testers; loneliness baseline | ✅ Complete |
+| 5–8 | Native iOS and Android; encrypted DMs | ✅ Complete |
+| 8–10 | Mobile beta via TestFlight and Play closed testing; IVR pilot | 🔄 In progress — closed beta |
+| 10–12 | Hardening, go/no-go gates, accessibility statement and VPAT, launch readiness | 🔄 In progress — stable v1.0 (v0.8.2), targeted end of August 2026 |
+
+**Status against this plan (updated July 2026).** The engineering build is complete: the web application, self-hosted speech (ASR and TTS), the accessible moderator console, the native iOS and Android apps, and end-to-end-encrypted messaging are all built, and the beta is feature-complete. The programme has entered **closed beta testing**; feedback collected from testers has already driven significant product changes, which will be published with the stable release rather than in this specification. Work is now on hardening toward **stable v1.0** — currently **v0.8.2** in active development — which the team aims to make publicly available by the end of August 2026. The go/no-go gates in §11.4 remain the bar for that public release.
 
 Salaries dominate the budget; infrastructure is modest, in the low hundreds of dollars a month at beta scale with self-hosted speech and a zero-egress CDN, plus honoraria and device grants per the capped policy. Funding is expected from grants and disability-focused foundations, individual giving, and in-kind infrastructure, with a possible enterprise or earned-revenue leg later — no advertising. Community DJs and moderators are paid fixed monthly honoraria at roughly $25–40/hour equivalent, capped around $10,000 per person per year, never per view, since per-view creator funds have failed everywhere they have been tried.
 
