@@ -55,6 +55,8 @@ These are acceptance criteria, not aspirations. A feature that violates one of t
 9. **Reachable without a smartphone.** The product must work for someone on a basic phone with no data plan.
 10. **Blind people govern it.** Curation and moderation leadership is majority-blind by rule.
 
+> **Amendment (v1).** Principles 5 and 6 are reversed for the v1 gesture-led card deck. They stand as written above; the decision, the accessibility floor retained in their place, and the unresolved engineering dissent are recorded in §4.1.
+
 ## 3. Scope: What Is Built, and What Is Refused
 
 ### 3.1 Beta scope
@@ -113,6 +115,14 @@ This section reverses an earlier recommendation.
 **Optional "radio mode," opt-in only:** a user may switch on a mode where the whole screen becomes a tap surface — one tap = next, two taps = like — which requires silencing the screen reader on that surface (iOS: `accessibilityDirectTouchOptions` with `.silentOnTouch`, with `.requiresActivation` considered to prevent accidental triggers). This mode must be easy to enter and leave and must never be the default; it deliberately breaks normal screen-reader navigation on that surface, which is why it is scoped and opt-in.
 
 **Recording** uses a start/stop toggle button — one press to start, one to stop — with spoken level feedback, never a hold, and is also available by voice command and rotor action.
+
+### 4.1 The v1 reversal: a gesture-led card deck, and its dissent
+
+**The decision.** For v1 the interface moves to a card deck — one memo per card, written or voice — led by gestures: swipe right to like, swipe right twice quickly to like and advance, swipe left to skip, press and hold to record. This is a deliberate leadership reversal of principle 5 ("nothing may live on a single gesture") and principle 6 ("no timed or precise gestures... no press-and-hold"), taken on the view that a card model is faster to learn and more familiar to users arriving from mainstream apps. It is recorded here rather than quietly applied, and the principles in §2 stand as written; this section is the amendment.
+
+**What was kept, and why it is not optional.** Gestures lead, but they never stand alone. Every action a gesture performs is also reachable by a visible, labelled on-screen button and by a keyboard shortcut, each firing an `aria-live` announcement; the persistent media-transport surface (§4, route 1) remains mounted for eyes-free playback. Press-and-hold retains a tap-toggle twin, so a user who cannot sustain a press is never excluded. A first-run wizard teaches each action and has the user practise it by whichever route suits them — gesture, button, or key. Without this floor the deck would be unusable by the platform's core users, for the reason immediately below.
+
+**Recorded dissent (accessibility engineering).** The dissent is not that gestures are unpopular; it is mechanical. VoiceOver and TalkBack consume left and right swipes for their own navigation before an application ever sees them, so a blind user running a screen reader cannot "swipe right to like" — the gesture never arrives. The only way to deliver raw swipes to the app is Direct Touch, which *silences the screen reader on that surface*, and which this specification restricts to an explicitly opt-in mode that must never be the default. It therefore does not follow that a gesture-led deck is more accessible to screen-reader users; for them the accessible route is the button or custom action, not the swipe. Press-and-hold likewise remains excluding for users with diabetic peripheral neuropathy, which is why the tap twin is mandatory rather than a courtesy. **This dissent stands unresolved.** It should be settled by testing with screen-reader users on real devices before the gesture model is described publicly as an accessibility improvement.
 
 ## 5. Web Application
 
